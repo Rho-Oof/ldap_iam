@@ -2,11 +2,17 @@
 'use strict';
 const ldap = require('ldapjs')
 const AWS = require('aws-sdk')
+const peercred = require('peercred')
 const crypto = require('crypto')
 const hash = crypto.createHash('sha256')
 
-hash.update(Array.from('0123456789').map(a=>Math.floor(Math.random() * 100)).join(''))
-var secret = hash.digest('hex')
+var secret
+if ( process.env.SECRET ) {
+  secret = process.env.SECRET
+} else {
+  hash.update(Array.from('0123456789').map(a=>Math.floor(Math.random() * 100)).join(''))
+  secret = hash.digest('hex')
+}
 
 console.log ( 'using secret:', secret )
 
@@ -19,22 +25,34 @@ var server = ldap.createServer()
 const domain = process.env.DOMAIN.split('.').map( dc => 'dc=' + dc.toLowerCase() ).join(',')
 
 function authorize(req, res, next) {
-    if (!req.connection.ldap.bindDN.equals('cn=root'))
-        return next(new ldap.InsufficientAccessRightsError())
-
-    return next()
+  if (isNaN(parseInt(process.env.PORT))){
+    let credentials=peercred.fromSock(req.connection)
+    if ((process.env.REQUIRE_UID && credentials.uid == process.env.REQUIRE_UID) ||
+        (process.env.REQUIRE_GID && credentials.gid == process.env.REQUIRE_GID)) {
+      return next()
+    } else {
+      console.log ('UID or GID mismatch',credentials)
+      return next(new ldap.InsufficientAccessRightsError())
+    }
+  }
+  if (!req.connection.ldap.bindDN.equals('cn=root')){
+    console.log('user not bound or insufficent rights, try as cn=root')
+    return next(new ldap.InsufficientAccessRightsError())
+  }
+  return next()
 }
-  /*
-server.bind('cn=root', function(req, res, next) {
-    if (req.dn.toString() !== 'cn=root' || req.credentials !== secret)
-        return next(new ldap.InvalidCredentialsError())
 
-    res.end()
-    return next()
-}) */
+server.bind('cn=root', function(req, res, next) {
+  console.log ( req.credentials )
+  if (req.dn.toString() !== 'cn=root' || req.credentials !== secret)
+    return next(new ldap.InvalidCredentialsError())
+
+  res.end()
+  return next()
+}) 
 
 function getUsers (req, res, next) {
-  if (! process.env.GROUP) {
+  if (! process.env.GROUP_NAME) {
     return next()
   }
   if (!req.users) {
@@ -45,6 +63,10 @@ function getUsers (req, res, next) {
     opts.Marker = req.marker
   }
   iam.getGroup(opts, (err, data ) => {
+    if (err) {
+      console.log(err)
+      return next(new ldap.UnavailableError())
+    }
     let uid = 68000 // more than 16bit max
     data.Users
       .sort((a,b) => a.CreateDate > b.CreateDate) //new users last, only a problem when someone gets deleted
@@ -76,9 +98,10 @@ function getUsers (req, res, next) {
   })
 }
 
-server.search(domain, getUsers, function(req, res, next) {
+server.search(domain, authorize, getUsers, function(req, res, next) {
   if (!req.users) {
-    return next(new ldap.InsufficientAccessRightsError())
+    console.log('no users found')
+    return next(new ldap.UnavailableError())
   }
   Object.keys(req.users).forEach(function(k) {
     if (req.filter.matches(req.users[k].attributes))

@@ -13,6 +13,7 @@
   "license": "MIT",
   "dependencies": {
     "aws-sdk": "^2.7.6",
-    "ldapjs": "^1.0.1"
+    "ldapjs": "^1.0.1",
+    "peercred": "^1.1.2"
   }
 }
