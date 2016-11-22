@@ -1,0 +1,18 @@
+{
+  "name": "ldap_iam",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "bin": {
+    "ldap_iam": "index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Robert Ostensen <>",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.7.6",
+    "ldapjs": "^1.0.1"
+  }
+}
