@@ -6,6 +6,12 @@ const peercred = require('peercred')
 const crypto = require('crypto')
 const hash = crypto.createHash('sha256')
 
+const iamEpoch = (new Date('2010-01-01')).getTime()
+
+// get as much uniqness as possible from a short string
+// this produces 3 hashes with more that 75 collisions from /usr/share/dict/words
+var shortHash = (s) => String(s).split('').reduce((p,c)=>p^Math.pow(c.charCodeAt(),2), 0x3fff)
+
 var secret
 if ( process.env.SECRET ) {
   secret = process.env.SECRET
@@ -82,7 +88,8 @@ function getUsers (req, res, next) {
               uri: user.Arn,
               shell: '/bin/bash',
               homedirectory: '/home/' + username,
-              uid: uid++, 
+              // best effort at unique uids above 16bits
+              uid: Math.floor((user.CreateDate.getTime()-iamEpoch)/1000)^shortHash(user.UserName), 
               gid: process.env.DEFAULT_GID || 500,
               objectclass: 'unixUser'
             }
@@ -110,7 +117,16 @@ server.search(domain, authorize, getUsers, function(req, res, next) {
 
   res.end()
 })
- 
-server.listen(process.env.PORT || 1389, function() {
-  console.log('ldapjs listening at ' + server.url)
-})
+
+function start () {
+  server.listen(process.env.PORT || 1389, function() {
+    console.log('ldapjs listening at ' + server.url)
+  })
+}
+
+if (isNaN(parseInt(process.env.PORT))) {
+  // attempt to remove socket file, ignore exceptions
+  require('fs').unlink(process.env.PORT,()=>start())
+} else {
+  start()
+}
