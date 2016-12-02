@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 'use strict';
+const fs = require('fs')
 const ldap = require('ldapjs')
 const AWS = require('aws-sdk')
 const peercred = require('peercred')
@@ -57,6 +58,12 @@ server.bind('cn=root', function(req, res, next) {
   return next()
 }) 
 
+server.bind('cn=local', function(req, res, next) {
+  res.end()
+  return next()
+})
+
+
 function getUsers (req, res, next) {
   if (! process.env.GROUP_NAME) {
     return next()
@@ -88,10 +95,12 @@ function getUsers (req, res, next) {
               uri: user.Arn,
               shell: '/bin/bash',
               homedirectory: '/home/' + username,
+              uid: username,
               // best effort at unique uids above 16bits
-              uid: Math.floor((user.CreateDate.getTime()-iamEpoch)/1000)^shortHash(user.UserName), 
-              gid: process.env.DEFAULT_GID || 500,
-              objectclass: 'unixUser'
+              uidNumber: Math.floor((user.CreateDate.getTime()-iamEpoch)/1000)^shortHash(user.UserName), 
+              gidNumber: process.env.DEFAULT_GID || 500,
+              objectclass: 'unixUser',
+              objectclass: 'posixAccount'
             }
           }
         }
@@ -121,12 +130,25 @@ server.search(domain, authorize, getUsers, function(req, res, next) {
 function start () {
   server.listen(process.env.PORT || 1389, function() {
     console.log('ldapjs listening at ' + server.url)
+    console.log ( Math.abs(parseInt(process.env.REQUIRE_UID || process.getuid())),
+        Math.abs(parseInt(process.env.REQUIRE_GID || process.getgid())), 'woo' )
+    if (isNaN(parseInt(process.env.PORT))) {
+      fs.chown(
+        process.env.PORT,
+        parseInt(process.env.REQUIRE_UID || process.getuid()),
+        parseInt(process.env.REQUIRE_GID || process.getgid()),
+        ()=>{})
+      fs.chmod(
+        process.env.PORT,
+        parseInt('0775', 8),
+        ()=>{})
+    }
   })
 }
 
 if (isNaN(parseInt(process.env.PORT))) {
   // attempt to remove socket file, ignore exceptions
-  require('fs').unlink(process.env.PORT,()=>start())
+  fs.unlink(process.env.PORT,()=>start())
 } else {
   start()
 }
