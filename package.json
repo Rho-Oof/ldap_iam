@@ -7,7 +7,8 @@
     "ldap_iam": "index.js"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "lint": "eslint index.js"
   },
   "author": "Robert Ostensen <>",
   "license": "MIT",
@@ -15,5 +16,11 @@
     "aws-sdk": "^2.7.6",
     "ldapjs": "^1.0.1",
     "peercred": "^1.1.2"
+  },
+  "devDependencies": {
+    "eslint": "^3.13.1",
+    "eslint-config-standard": "^6.2.1",
+    "eslint-plugin-promise": "^3.4.0",
+    "eslint-plugin-standard": "^2.0.1"
   }
 }
