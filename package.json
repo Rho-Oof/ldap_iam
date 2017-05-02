@@ -1,7 +1,7 @@
 {
   "name": "ldap_iam",
   "version": "1.0.0",
-  "description": "",
+  "description": "LDAP Proxy to AWS IAM",
   "main": "index.js",
   "bin": {
     "ldap_iam": "index.js"
@@ -10,7 +10,7 @@
     "start": "node index.js",
     "lint": "eslint index.js"
   },
-  "author": "Robert Ostensen <>",
+  "author": "Robert Ostensen <robert.ostensen@macmillan.com>",
   "license": "MIT",
   "dependencies": {
     "aws-sdk": "^2.7.6",
