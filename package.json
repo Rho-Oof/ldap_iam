@@ -1,6 +1,6 @@
 {
   "name": "ldap_iam",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "LDAP Proxy to AWS IAM",
   "main": "index.js",
   "repository": { 
