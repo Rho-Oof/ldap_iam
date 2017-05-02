@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "LDAP Proxy to AWS IAM",
   "main": "index.js",
+  "repository": { 
+    "type": "git",
+    "url": "https://github.com/robert-ostensen/ldap_iam.git"
+  },
   "bin": {
     "ldap_iam": "index.js"
   },
