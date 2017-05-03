@@ -16,6 +16,9 @@
   },
   "author": "Robert Ostensen <robert.ostensen@macmillan.com>",
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "dependencies": {
     "aws-sdk": "^2.7.6",
     "ldapjs": "^1.0.1",
